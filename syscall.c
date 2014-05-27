@@ -77,6 +77,39 @@ argstr(int n, char **pp)
   return fetchstr(addr, pp);
 }
 
+// get the string of call name
+const char *syscall_name(int callno)
+{
+	static const char * const excnames[] = {
+		"fork",
+		"exit",
+		"wait",
+		"pipe",
+		"read",
+		"kill",
+		"exec",
+		"fstat",
+		"chdir",
+		"dup",
+		"getpid",
+		"sbrk",
+		"sleep",
+		"uptime",
+		"open",
+		"write",
+		"mknod",
+		"unlink",
+		"mkdir",
+		"close"
+		"halt"
+	};
+
+	if (callno < sizeof(excnames)/sizeof(excnames[0]))
+		return excnames[callno];
+	return "(unknown call)";
+}
+
+
 extern int sys_chdir(void);
 extern int sys_close(void);
 extern int sys_dup(void);
@@ -98,6 +131,7 @@ extern int sys_unlink(void);
 extern int sys_wait(void);
 extern int sys_write(void);
 extern int sys_uptime(void);
+extern int sys_halt(void);
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -121,6 +155,7 @@ static int (*syscalls[])(void) = {
 [SYS_link]    sys_link,
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
+[SYS_halt]	  sys_halt,
 };
 
 void
@@ -130,10 +165,16 @@ syscall(void)
 
   num = proc->tf->eax;
   if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
-    proc->tf->eax = syscalls[num]();
+  	uint ret;
+	if(num == 22)
+		cprintf("in %s\n","halt");
+    ret = proc->tf->eax = syscalls[num]();
+	//cprintf("%s -> %d\n", syscall_name(ret), ret);
   } else {
     cprintf("%d %s: unknown sys call %d\n",
             proc->pid, proc->name, num);
     proc->tf->eax = -1;
   }
 }
+
+
